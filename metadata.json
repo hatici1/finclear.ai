@@ -1,0 +1,5 @@
+{
+  "name": "FinClear AI",
+  "description": "A modern, AI-powered financial dashboard that turns messy bank CSVs into clear insights using Gemini.",
+  "requestFramePermissions": []
+}
