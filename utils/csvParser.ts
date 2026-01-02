@@ -67,11 +67,14 @@ export const parseCSV = (content: string): RawTransaction[] => {
     }
 
     if (dateStr) {
-      transactions.push({
-        date: cleanString(dateStr),
-        description: cleanString(fullDescription),
-        amount
-      });
+      const normalizedDate = normalizeDate(cleanString(dateStr));
+      if (normalizedDate) {
+        transactions.push({
+          date: normalizedDate,
+          description: cleanString(fullDescription),
+          amount
+        });
+      }
     }
   }
 
@@ -204,4 +207,71 @@ const cleanString = (str: string): string => {
   if (!str) return '';
   // Remove excessive whitespace and quotes
   return str.replace(/\s+/g, ' ').trim();
+};
+
+// Normalize date to YYYY-MM-DD format for consistent filtering
+export const normalizeDate = (dateStr: string): string => {
+  if (!dateStr) return '';
+  const cleaned = dateStr.trim();
+
+  // Already in YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  // Try parsing with Date object
+  let parsed: Date | null = null;
+
+  // Common formats to try
+  // DD/MM/YYYY or DD.MM.YYYY (European)
+  const euMatch = cleaned.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (euMatch) {
+    const [, day, month, year] = euMatch;
+    // Check if first number > 12, it's definitely day-first
+    if (parseInt(day) > 12) {
+      parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else if (parseInt(month) > 12) {
+      // MM/DD/YYYY (US format)
+      parsed = new Date(parseInt(year), parseInt(day) - 1, parseInt(month));
+    } else {
+      // Ambiguous - assume DD/MM/YYYY (more common globally)
+      parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+  }
+
+  // MM/DD/YYYY or MM-DD-YYYY (US with 2-digit year or full)
+  const usMatch = cleaned.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})$/);
+  if (!parsed && usMatch) {
+    let [, first, second, year] = usMatch;
+    let fullYear = year.length === 2 ? (parseInt(year) > 50 ? `19${year}` : `20${year}`) : year;
+    // If first > 12, it's day/month, otherwise month/day
+    if (parseInt(first) > 12) {
+      parsed = new Date(parseInt(fullYear), parseInt(second) - 1, parseInt(first));
+    } else {
+      parsed = new Date(parseInt(fullYear), parseInt(first) - 1, parseInt(second));
+    }
+  }
+
+  // YYYY/MM/DD or YYYY.MM.DD
+  const isoLikeMatch = cleaned.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/);
+  if (!parsed && isoLikeMatch) {
+    const [, year, month, day] = isoLikeMatch;
+    parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  }
+
+  // Fallback: let JS try to parse it
+  if (!parsed) {
+    parsed = new Date(cleaned);
+  }
+
+  // Validate and format
+  if (parsed && !isNaN(parsed.getTime())) {
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // If all else fails, return original
+  return cleaned;
 };

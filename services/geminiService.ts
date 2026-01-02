@@ -172,10 +172,14 @@ export const askFinancialAssistant = async (question: string, contextData: strin
         You are a helpful financial assistant named FinBot.
         Answer the user's question based on their transaction data summary below.
         Keep answers concise (under 60 words), friendly, and use formatting (bullets) if helpful.
-        
+
+        If user asks about editing/changing categories:
+        - Guide them to use the "Edit Categories" button at the top of the dashboard
+        - They can add notes directly on each transaction row
+
         Transaction Data Summary:
         ${contextData}
-        
+
         User Question: ${question}
       `
     });
@@ -183,4 +187,12 @@ export const askFinancialAssistant = async (question: string, contextData: strin
   } catch (error) {
     return "I'm having trouble accessing the financial brain right now.";
   }
+};
+
+// Check if an AI provider is configured
+export const hasAiConfigured = (): boolean => {
+  const apiKey = localStorage.getItem('finclear_api_key');
+  const openaiKey = localStorage.getItem('finclear_openai_key');
+  const ollamaUrl = localStorage.getItem('finclear_ollama_url');
+  return !!(apiKey || openaiKey || ollamaUrl);
 };

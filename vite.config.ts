@@ -4,11 +4,13 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // CRITICAL: This ensures assets load correctly when running as a mobile app (file:// protocol)
-  base: './',
-  // Defines process.env as an empty object so 'process.env.API_KEY' doesn't crash the app in the browser
+  // Use '/' for Vercel/web, './' for mobile apps
+  // Vercel sets process.env.VERCEL to '1' during build
+  base: process.env.VERCEL ? '/' : './',
+  // Pass environment variables to the app
   define: {
-    'process.env': {}
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || ''),
+    'process.env.VERCEL': JSON.stringify(process.env.VERCEL || '')
   },
   server: {
     port: 3000,
@@ -16,6 +18,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+    // Suppress the chunk size warning
+    chunkSizeWarningLimit: 1000
   }
 });
